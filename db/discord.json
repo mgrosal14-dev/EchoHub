@@ -1,0 +1,161 @@
+{
+  "profiles": {},
+  "friends": {
+    "BrickFrag": [
+      "MglRosal"
+    ],
+    "MglRosal": [
+      "BrickFrag"
+    ]
+  },
+  "friendRequests": {
+    "BrickFrag": {
+      "incoming": [],
+      "outgoing": []
+    },
+    "MglRosal": {
+      "incoming": [],
+      "outgoing": []
+    }
+  },
+  "blocks": {
+    "BrickFrag": [],
+    "MglRosal": []
+  },
+  "dms": {
+    "BrickFrag::MglRosal": []
+  },
+  "groups": {},
+  "rolesByCommunity": {
+    "echohub": [
+      {
+        "id": "role-template-1781606947400-0",
+        "roleName": "Owner",
+        "permissions": [
+          "ban",
+          "kick",
+          "timeout",
+          "manage_roles",
+          "manage_channels",
+          "manage_messages",
+          "view_audit_log"
+        ],
+        "createdAt": "2026-06-16T10:49:07.400Z"
+      },
+      {
+        "id": "role-template-1781606947400-1",
+        "roleName": "Admin",
+        "permissions": [
+          "ban",
+          "kick",
+          "timeout",
+          "manage_roles",
+          "manage_channels",
+          "manage_messages"
+        ],
+        "createdAt": "2026-06-16T10:49:07.400Z"
+      },
+      {
+        "id": "role-template-1781606947400-2",
+        "roleName": "Moderator",
+        "permissions": [
+          "ban",
+          "kick",
+          "timeout",
+          "manage_messages",
+          "view_audit_log"
+        ],
+        "createdAt": "2026-06-16T10:49:07.400Z"
+      },
+      {
+        "id": "role-template-1781606947400-3",
+        "roleName": "Member",
+        "permissions": [],
+        "createdAt": "2026-06-16T10:49:07.400Z"
+      },
+      {
+        "id": "role-template-1781606947400-4",
+        "roleName": "Muted",
+        "permissions": [],
+        "createdAt": "2026-06-16T10:49:07.400Z"
+      }
+    ],
+    "home-brickfrag": [
+      {
+        "id": "role-1780123573942",
+        "roleName": "Owner",
+        "permissions": [
+          "ban",
+          "kick",
+          "timeout",
+          "manage_roles",
+          "lockdown",
+          "massban",
+          "manage_messages"
+        ],
+        "createdAt": "2026-05-30T06:46:13.942Z"
+      },
+      {
+        "id": "role-1780131359006",
+        "roleName": "Admin",
+        "permissions": [
+          "ban",
+          "kick",
+          "timeout"
+        ],
+        "createdAt": "2026-05-30T08:55:59.006Z"
+      }
+    ]
+  },
+  "permissionsByChannel": {},
+  "channelSettings": {},
+  "invites": {},
+  "threadsByChannel": {},
+  "welcomeByCommunity": {
+    "echohub": {
+      "title": "Welcome to #General!",
+      "message": "Introduce yourself, read the rules, and enjoy the community.",
+      "image": "/uploads/1781871163819-EchoHubAllThreeLogos.png",
+      "enabled": true,
+      "updatedAt": "2026-06-19T12:13:03.317Z"
+    }
+  },
+  "onboardingByCommunity": {
+    "echohub": {
+      "rules": "Be respectful. No spam, harassment, scams, or NSFW content. Follow staff directions and keep channels on topic.",
+      "questions": [
+        "Why do you want to join?",
+        "What should people call you?"
+      ],
+      "autoRole": "Member"
+    }
+  },
+  "onboardingSubmissionsByCommunity": {},
+  "communityMemberRoles": {
+    "echohub": {
+      "BrickFrag": "owner"
+    },
+    "home-brickfrag": {
+      "MglRosal": "Admin"
+    }
+  },
+  "dmThreads": {},
+  "bansByCommunity": {},
+  "notifications": {
+    "BrickFrag": [],
+    "MglRosal": []
+  },
+  "callInvites": {},
+  "auditLog": [
+    {
+      "id": "audit-1780047361596-95056",
+      "actor": "BrickFrag",
+      "action": "invite_created",
+      "target": "echohub",
+      "details": {
+        "code": "F0GHDZ"
+      },
+      "createdAt": "2026-05-29T09:36:01.596Z"
+    }
+  ]
+}

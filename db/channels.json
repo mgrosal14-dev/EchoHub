@@ -1,0 +1,180 @@
+[
+  {
+    "id": "general",
+    "name": "💬general💬",
+    "type": "text",
+    "category": "Hub",
+    "description": "Main chat room",
+    "createdAt": "2026-05-18T00:00:00.000Z",
+    "communityId": "echohub",
+    "displayName": "💬General💬"
+  },
+  {
+    "id": "general-home-brickfrag",
+    "name": "general",
+    "type": "text",
+    "category": "Hub",
+    "communityId": "home-brickfrag",
+    "description": "Main chat room",
+    "createdAt": "2026-05-29T14:19:58.536Z"
+  },
+  {
+    "id": "general-home-mglrosal",
+    "name": "general",
+    "type": "text",
+    "category": "Hub",
+    "communityId": "home-mglrosal",
+    "description": "Main chat room",
+    "createdAt": "2026-05-30T06:47:13.610Z"
+  },
+  {
+    "id": "tmpl-1781606947399-0",
+    "name": "👋welcome👋",
+    "displayName": "👋Welcome👋",
+    "type": "text",
+    "category": "START HERE",
+    "communityId": "echohub",
+    "description": "Start here and learn what this community is about.",
+    "createdAt": "2026-06-16T10:49:07.399Z"
+  },
+  {
+    "id": "tmpl-1781606947399-1",
+    "name": "📋rules📋",
+    "displayName": "📋Rules📋",
+    "type": "text",
+    "category": "START HERE",
+    "communityId": "echohub",
+    "description": "Community rules and expectations.",
+    "createdAt": "2026-06-16T10:49:07.399Z"
+  },
+  {
+    "id": "tmpl-1781606947399-4",
+    "name": "🗣️introductions👥",
+    "displayName": "🗣️Introductions👥",
+    "type": "text",
+    "category": "COMMUNITY",
+    "communityId": "echohub",
+    "description": "Introduce yourself.",
+    "createdAt": "2026-06-16T10:49:07.399Z"
+  },
+  {
+    "id": "tmpl-1781606947400-5",
+    "name": "⚪self-roles⚪",
+    "displayName": "⚪Self-Roles⚪",
+    "type": "text",
+    "category": "COMMUNITY",
+    "communityId": "echohub",
+    "description": "Choose your roles.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "tmpl-1781606947400-6",
+    "name": "🤖bot-chat🤖",
+    "displayName": "🤖Bot-Chat🤖",
+    "type": "text",
+    "category": "COMMUNITY",
+    "communityId": "echohub",
+    "description": "Bot and command testing.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "tmpl-1781606947400-7",
+    "name": "🖥️clips/images🖥️",
+    "displayName": "🖥️Clips/Images🖥️",
+    "type": "text",
+    "category": "MEDIA",
+    "communityId": "echohub",
+    "description": "Share images, clips, and memes.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "tmpl-1781606947400-8",
+    "name": "✏️creations✏️",
+    "displayName": "✏️Creations✏️",
+    "type": "text",
+    "category": "MEDIA",
+    "communityId": "echohub",
+    "description": "Show off your work.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "tmpl-1781606947400-9",
+    "name": "😎lobby/chill😎",
+    "displayName": "😎Lobby/Chill😎",
+    "type": "voice",
+    "category": "VOICE CHANNELS",
+    "communityId": "echohub",
+    "description": "Voice lobby.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "tmpl-1781606947400-10",
+    "name": "🖥️gaming🎮",
+    "displayName": "🖥️Gaming🎮",
+    "type": "voice",
+    "category": "VOICE CHANNELS",
+    "communityId": "echohub",
+    "description": "Gaming voice room.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "tmpl-1781606947400-11",
+    "name": "📚study📚",
+    "displayName": "📚Study📚",
+    "type": "voice",
+    "category": "VOICE CHANNELS",
+    "communityId": "echohub",
+    "description": "Chill voice room.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "tmpl-1781606947400-12",
+    "name": "🛡️staff-chat🛡️",
+    "displayName": "🛡️Staff-Chat🛡️",
+    "type": "text",
+    "category": "STAFF",
+    "communityId": "echohub",
+    "description": "Staff-only discussion.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "tmpl-1781606947400-13",
+    "name": "👮mod-log👮",
+    "displayName": "👮Mod-Log👮",
+    "type": "text",
+    "category": "STAFF",
+    "communityId": "echohub",
+    "description": "Moderation notes and audit log.",
+    "createdAt": "2026-06-16T10:49:07.400Z"
+  },
+  {
+    "id": "1781693994077",
+    "name": "📢update📢",
+    "displayName": "📢Update📢",
+    "type": "text",
+    "category": "Update📢",
+    "communityId": "echohub",
+    "description": "",
+    "createdAt": "2026-06-17T10:59:54.077Z"
+  },
+  {
+    "id": "1781696104184",
+    "name": "🎧voice-call🎧",
+    "displayName": "🎧voice-call🎧",
+    "type": "voice",
+    "category": "VOICE CHANNELS",
+    "communityId": "echohub",
+    "description": "",
+    "createdAt": "2026-06-17T11:35:04.184Z"
+  },
+  {
+    "id": "1781698409168",
+    "name": "🔴live🔴",
+    "displayName": "🔴Live🔴",
+    "type": "voice",
+    "category": "VOICE CHANNELS",
+    "communityId": "echohub",
+    "description": "",
+    "createdAt": "2026-06-17T12:13:29.168Z"
+  }
+]
