@@ -1577,8 +1577,13 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
 @media (max-width: 720px) {
   html, body {
     width: 100%;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .neo-auth {
+    min-height: 100dvh;
+    overflow-y: auto;
   }
   .auth-shell {
     min-height: 100dvh;
