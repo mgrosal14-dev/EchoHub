@@ -1960,6 +1960,20 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
   <form class="modal-panel" onsubmit="event.preventDefault(); createChannel();">
     <h2>Create channel</h2>
     <label class="field">Name<input id="newChannelName" placeholder="clips, raids, designs"></label>
+    <label class="field">Decoration
+      <select id="newChannelDecoration">
+        <option value="">None</option>
+        <option value="・">・</option>
+        <option value="│">│</option>
+        <option value="ㆍ">ㆍ</option>
+        <option value="┃">┃</option>
+        <option value="•">•</option>
+        <option value="〢">〢</option>
+        <option value="၊">၊</option>
+        <option value="|">|</option>
+        <option value="┆">┆</option>
+      </select>
+    </label>
     <div>
       <button class="mini-btn" type="button" onclick="toggleEmojiPicker(event, 'newChannelName')">Emoji</button>
     </div>
@@ -2040,6 +2054,20 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
   <form class="modal-panel" onsubmit="event.preventDefault(); submitRenameChannel();">
     <h2>Rename channel</h2>
     <label class="field">New name<input id="renameChannelName" placeholder="new-channel-name"></label>
+    <label class="field">Decoration
+      <select id="renameChannelDecoration">
+        <option value="">None</option>
+        <option value="・">・</option>
+        <option value="│">│</option>
+        <option value="ㆍ">ㆍ</option>
+        <option value="┃">┃</option>
+        <option value="•">•</option>
+        <option value="〢">〢</option>
+        <option value="၊">၊</option>
+        <option value="|">|</option>
+        <option value="┆">┆</option>
+      </select>
+    </label>
     <div>
       <button class="mini-btn" type="button" onclick="toggleEmojiPicker(event, 'renameChannelName')">Emoji</button>
     </div>
@@ -2133,7 +2161,7 @@ let discordState = { friendRequests: { incoming: [], outgoing: [] }, notificatio
 let currentDMUser = null;
 let pendingDMFile = null;
 let notificationRefreshTimer = null;
-let authMode = "login";
+var authMode = "login";
 let localPresence = "online";
 let idleTimer = null;
 let authToken = "";
@@ -2960,6 +2988,20 @@ function renderCommunities() {
 }
 function channelDisplayName(channel) {
   return String((channel && (channel.displayName || channel.name)) || "");
+}
+const channelDecorations = ["・", "│", "ㆍ", "┃", "•", "〢", "၊", "|", "┆"];
+function splitChannelDecoration(value) {
+  const raw = String(value || "").trim();
+  const decoration = channelDecorations.find((mark) => raw.startsWith(mark)) || "";
+  return {
+    decoration,
+    name: decoration ? raw.slice(decoration.length).trimStart() : raw,
+  };
+}
+function applyChannelDecoration(name, decoration) {
+  const cleanName = splitChannelDecoration(name).name.trim();
+  const mark = channelDecorations.includes(decoration) ? decoration : "";
+  return mark ? `${mark}${cleanName}` : cleanName;
 }
 async function switchCommunity(communityId) {
   currentCommunityId = communityId;
@@ -3981,7 +4023,10 @@ async function renameChannel(channelId) {
   if (!channel) return;
   renameChannelId = channelId;
   const input = document.getElementById("renameChannelName");
-  input.value = channel.displayName || channel.name || "";
+  const parsed = splitChannelDecoration(channel.displayName || channel.name || "");
+  input.value = parsed.name;
+  const decorationInput = document.getElementById("renameChannelDecoration");
+  if (decorationInput) decorationInput.value = parsed.decoration;
   document.getElementById("renameChannelModal").style.display = "grid";
   input.focus();
 }
@@ -3990,8 +4035,10 @@ function closeRenameChannelModal() {
   renameChannelId = null;
 }
 async function submitRenameChannel() {
-  const next = document.getElementById("renameChannelName").value.trim();
-  if (!renameChannelId || !next) return;
+  const rawName = document.getElementById("renameChannelName").value.trim();
+  const decoration = document.getElementById("renameChannelDecoration")?.value || "";
+  const next = applyChannelDecoration(rawName, decoration);
+  if (!renameChannelId || !splitChannelDecoration(next).name) return;
   const channel = channels.find((c) => c.id === renameChannelId);
   if (channel) {
     channel.displayName = next;
@@ -4965,10 +5012,12 @@ function createSection() {
 }
 function createChannel() {
   if (!isCurrentUserCommunityManager()) return pushToast("Access denied", "Only community admins or mods can create channels.");
-  const name = document.getElementById("newChannelName").value.trim();
+  const rawName = document.getElementById("newChannelName").value.trim();
+  const decoration = document.getElementById("newChannelDecoration")?.value || "";
+  const name = applyChannelDecoration(rawName, decoration);
   const category = document.getElementById("newChannelCategory").value.trim();
   const channelType = document.getElementById("newChannelType").value;
-  if (!name) return;
+  if (!splitChannelDecoration(name).name) return;
   fetchJSON("/channels", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -4989,6 +5038,8 @@ function createChannel() {
     channels = channels.filter((channel) => (legacyCommunityMap[channel.id] || channel.communityId || "echohub") === currentCommunityId);
     renderChannels();
     document.getElementById("newChannelName").value = "";
+    const decorationInput = document.getElementById("newChannelDecoration");
+    if (decorationInput) decorationInput.value = "";
     closeChannelModal();
     if (createdChannel && createdChannel.id) joinRoom(createdChannel.id);
     scheduleAutoSave("create_channel");
