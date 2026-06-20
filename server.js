@@ -1772,13 +1772,32 @@ app.get("/search/:channelId", (req, res) => {
 // ONLINE USERS
 // ============================
 let onlineUsers = {};
-app.get("/online", (req, res) => res.json(Object.values(onlineUsers)));
+function getOnlineUserList() {
+  const byName = new Map();
+  Object.values(onlineUsers).forEach((session) => {
+    if (!session?.username) return;
+    const existing = byName.get(session.username);
+    const existingScore = existing?.presence === "online" ? 2 : existing?.presence === "idle" ? 1 : 0;
+    const nextScore = session.presence === "online" ? 2 : session.presence === "idle" ? 1 : 0;
+    if (!existing || nextScore > existingScore || Number(session.lastActiveAt || 0) > Number(existing.lastActiveAt || 0)) {
+      byName.set(session.username, { ...session, socketId: undefined, sessions: 1 });
+    } else {
+      existing.sessions = Number(existing.sessions || 1) + 1;
+    }
+  });
+  return [...byName.values()];
+}
+function broadcastOnlineUsers() {
+  io.emit("online_users", getOnlineUserList());
+}
+app.get("/online", (req, res) => res.json(getOnlineUserList()));
 
 // ============================
 // WEBSOCKETS
 // ============================
 io.on("connection", (socket) => {
   console.log(`Connected: ${socket.id}`);
+  socket.emit("online_users", getOnlineUserList());
 
   socket.on("user_join", (payload) => {
     const username = typeof payload === "string" ? payload : String(payload?.username || "").trim();
@@ -1788,9 +1807,10 @@ io.on("connection", (socket) => {
     const avatar = (typeof payload === "object" && payload?.avatar) || found?.avatar || username.slice(0, 2).toUpperCase();
     const accent = (typeof payload === "object" && payload?.accent) || found?.accent || "#5865f2";
     const role = (typeof payload === "object" && payload?.role) || found?.role || "member";
+    const wasOffline = !Object.values(onlineUsers).some((user) => user.username === username);
     onlineUsers[socket.id] = { username, socketId: socket.id, avatar, accent, role, presence: "online", lastActiveAt: Date.now() };
-    io.emit("online_users", Object.values(onlineUsers));
-    io.emit("user_joined", { username, message: `${username} joined EchoHub!` });
+    broadcastOnlineUsers();
+    if (wasOffline) io.emit("user_joined", { username, message: `${username} joined EchoHub!` });
   });
   socket.on("presence_update", (payload) => {
     const next = String(payload?.status || "").trim().toLowerCase();
@@ -1798,7 +1818,7 @@ io.on("connection", (socket) => {
     if (next !== "online" && next !== "idle") return;
     onlineUsers[socket.id].presence = next;
     onlineUsers[socket.id].lastActiveAt = Date.now();
-    io.emit("online_users", Object.values(onlineUsers));
+    broadcastOnlineUsers();
   });
 
   socket.on("join_channel", (channelId) => {
@@ -1910,8 +1930,9 @@ io.on("connection", (socket) => {
     const user = onlineUsers[socket.id];
     if (user) {
       delete onlineUsers[socket.id];
-      io.emit("online_users", Object.values(onlineUsers));
-      io.emit("user_left", { username: user.username });
+      const stillOnline = Object.values(onlineUsers).some((session) => session.username === user.username);
+      broadcastOnlineUsers();
+      if (!stillOnline) io.emit("user_left", { username: user.username });
     }
   });
 });

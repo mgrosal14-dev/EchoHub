@@ -1,15 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EchoHub</title>
-<link rel="icon" type="image/png" href="/uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png">
-<link rel="shortcut icon" href="/uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png">
-<link rel="apple-touch-icon" href="/uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png">
-<script src="/socket.io/socket.io.js"></script>
+<link rel="icon" type="image/png" href="../uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png">
+<link rel="shortcut icon" href="../uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png">
+<link rel="apple-touch-icon" href="../uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png">
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js"></script>
-<link rel="stylesheet" href="/style.css">
 <style>
 :root {
   color-scheme: dark;
@@ -39,6 +38,25 @@ body {
 }
 button, input, select { font: inherit; }
 button { border: 0; color: inherit; cursor: pointer; }
+.static-warning {
+  display: none;
+  position: fixed;
+  z-index: 2147483646;
+  left: 16px;
+  right: 16px;
+  top: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 12px 14px;
+  border: 1px solid #f0b232;
+  border-radius: 12px;
+  background: #1f2023;
+  color: #f2f3f5;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  line-height: 1.45;
+}
+.static-warning strong { color: #f0b232; }
+.static-warning code { color: #ffffff; }
 .auth {
   min-height: 100vh;
   display: grid;
@@ -1577,6 +1595,11 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
 </style>
 </head>
 <body>
+<div id="staticWarning" class="static-warning">
+  <strong>Static preview only.</strong>
+  GitHub Pages can show the EchoHub UI, but login, chat, uploads, friends, and calls need the Node server from <code>server.js</code>.
+  Deploy EchoHub to a Node host for the full app.
+</div>
 <main id="auth" class="neo-auth">
   <section id="authShell" class="neo-shell" data-mode="login">
     <aside class="neo-brand">
@@ -1584,12 +1607,12 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
         <button id="loginTab" class="auth-tab active" type="button" onclick="setAuthMode('login')">Log in</button>
         <button id="signupTab" class="auth-tab" type="button" onclick="setAuthMode('signup')">Sign up</button>
       </div>
-      <img class="neo-logo" src="/uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png" alt="EchoHub logo">
+      <img class="neo-logo" src="../uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png" alt="EchoHub logo">
       <h1>EchoHub</h1>
       <p>Jump into servers, voice rooms, and communities.</p>
     </aside>
     <form id="authCard" class="neo-card ready" data-mode="login" onsubmit="event.preventDefault(); submitAuth();">
-      <h2 id="authTitle" class="auth-animated"><span>Welcome to EchoHub</span><img class="welcome-logo" src="/uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png" alt="logo"></h2>
+      <h2 id="authTitle" class="auth-animated"><span>Welcome to EchoHub</span><img class="welcome-logo" src="../uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png" alt="logo"></h2>
       <div class="auth-fields auth-animated">
         <label class="field">Username<input id="username" autocomplete="username"></label>
         <label class="field">Email<input id="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
@@ -1715,7 +1738,7 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
         <div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0;justify-content:center;">
           <div id="myNameRight" class="profile-name"></div>
           <button class="mini-btn" type="button" onclick="openTitleModal()" style="margin-top:4px;">Titles</button>
-          <div id="myPresenceText" class="muted">You � Online</div>
+          <div id="myPresenceText" class="muted">You ï¿½ Online</div>
         </div>
     </div>
     </div>
@@ -2068,7 +2091,16 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
 </div>
 <div id="toastStack" class="toast-stack"></div>
 <script>
-const socket = io();
+const STATIC_DEPLOY = location.hostname.endsWith("github.io") || location.protocol === "file:";
+const socket = window.io
+  ? io({ autoConnect: !STATIC_DEPLOY })
+  : { connected: false, emit() {}, on() {} };
+if (STATIC_DEPLOY) {
+  window.addEventListener("DOMContentLoaded", () => {
+    const warning = document.getElementById("staticWarning");
+    if (warning) warning.style.display = "block";
+  });
+}
 let currentUser = null;
 let currentChannel = "general";
 let currentCommunityId = null;
@@ -2611,6 +2643,9 @@ function restoreAutoSavedDrafts() {
   });
 }
 function fetchJSON(url, options) {
+  if (STATIC_DEPLOY && String(url || "").startsWith("/")) {
+    return Promise.reject(new Error("GitHub Pages is static. Login, chat, uploads, and saves need the Node server deployment."));
+  }
   const opts = options ? { ...options } : {};
   const headers = { ...(opts.headers || {}) };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
@@ -2629,7 +2664,7 @@ function pushToast(title, text) {
   setTimeout(() => node.remove(), 3200);
 }
 function authTitleMarkup(text) {
-  return `<span>${escapeHtml(text)}</span><img class="welcome-logo" src="/uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png" alt="logo">`;
+  return `<span>${escapeHtml(text)}</span><img class="welcome-logo" src="../uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png" alt="logo">`;
 }
 function setAuthMode(mode) {
   if (mode !== "login" && mode !== "signup") return;
@@ -2768,7 +2803,7 @@ async function enterApp(user) {
   app.style.display = "grid";
   renderSelfName();
   renderSelfAvatar();
-  socket.emit("user_join", { username: user.username, avatar: user.avatar, accent: user.accent, role: user.role || "member" });
+  announcePresence();
   setupPresenceTracking();
   allUsers = await fetchJSON("/users").catch(() => []);
   const cachedFriends = readLocal(`echohub_friends_${user.username}`, []);
@@ -3116,7 +3151,7 @@ function renderMembers() {
       <div class="avatar" style="background:${escapeHtml(member.accent)}">${avatarMarkup(member.avatar, member.username)}<span class="presence-badge ${presenceClass(member.status)}"></span></div>
       <div>
         <div class="profile-name">${escapeHtml(member.username)}${titleBadge(member.title)}</div>
-        <div class="muted">${escapeHtml(presenceLabel(member.status))} • ${escapeHtml(member.communityRole || member.role)}</div>
+        <div class="muted">${escapeHtml(presenceLabel(member.status))} â€¢ ${escapeHtml(member.communityRole || member.role)}</div>
         <div style="display:flex;gap:6px;margin-top:6px;">
           <button class="mini-btn" type="button" onclick="openDM('${escapeHtml(member.username)}')">DM</button>
           ${ownerControls ? `<button class="mini-btn" type="button" onclick="setUserRole('${escapeHtml(member.username)}','admin')">Make Admin</button>` : ""}
@@ -5221,6 +5256,13 @@ socket.on("pin_updated", ({ messageId, pinned }) => {
   renderMessages();
   scheduleAutoSave("pin_updated");
 });
+function announcePresence() {
+  if (!currentUser || !currentUser.username || !socket.connected) return;
+  socket.emit("user_join", { username: currentUser.username, avatar: currentUser.avatar, accent: currentUser.accent, role: currentUser.role || "member" });
+}
+socket.on("connect", () => {
+  announcePresence();
+});
 socket.on("online_users", (list) => {
   online = list;
   members = list.map((user) => ({ username: user.username, role: user.role || "member", accent: user.accent || "#5865f2", avatar: user.avatar || "", status: user.presence || "online" }));
@@ -5234,6 +5276,7 @@ socket.on("online_users", (list) => {
     if (myPresenceText) myPresenceText.textContent = `You - ${presenceLabel(selfPresence)}`;
   }
   renderMembers();
+  renderRandomPeople();
 });
 function setPresence(status) {
   if (!currentUser || !currentUser.username) return;
@@ -5339,6 +5382,8 @@ document.addEventListener("contextmenu", (event) => {
 </script>
 </body>
 </html>
+
+
 
 
 
