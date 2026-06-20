@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Runtime logs
+*.log
+*.err
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and local machine files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/IDE folders
+.vscode/
+.idea/
+
+# Build/cache output
+dist/
+build/
+coverage/
+.cache/
+.parcel-cache/
+.next/
+.vite/
+
+# User uploaded runtime files
+uploads/*
+!uploads/1780051767922-bcddf0c1-e520-49a5-905b-874eac2a08d7.png
+
+# Local server/process artifacts
+*.pid
+*.seed
+*.tmp
+tmp/
+temp/
