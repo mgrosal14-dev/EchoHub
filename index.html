@@ -1613,6 +1613,7 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
     scroll-behavior: smooth;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
     background: #1e1f22;
   }
   .app[style*="grid"], .app[style*="block"] {
@@ -2975,10 +2976,53 @@ function focusMobileChatPanel() {
     app.scrollLeft = chatPanel.offsetLeft;
   });
 }
+let mobileSwipeState = null;
+function canStartMobilePanelSwipe(event) {
+  if (!app || !window.matchMedia("(max-width: 720px)").matches) return false;
+  const target = event.target;
+  if (!target || !app.contains(target)) return false;
+  if (target.closest("button,input,textarea,select,a,.modal,.context-menu,.emoji-pop,.gif-pop")) return false;
+  return true;
+}
+function setupMobilePanelSwipe() {
+  if (!app || app.dataset.mobileSwipeReady === "true") return;
+  app.dataset.mobileSwipeReady = "true";
+  app.addEventListener("touchstart", (event) => {
+    if (!canStartMobilePanelSwipe(event) || !event.touches.length) return;
+    const touch = event.touches[0];
+    mobileSwipeState = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lastX: touch.clientX,
+      scrollLeft: app.scrollLeft,
+      dragging: false,
+    };
+  }, { passive: true });
+  app.addEventListener("touchmove", (event) => {
+    if (!mobileSwipeState || !event.touches.length) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - mobileSwipeState.startX;
+    const dy = touch.clientY - mobileSwipeState.startY;
+    if (!mobileSwipeState.dragging && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+      mobileSwipeState.dragging = true;
+    }
+    if (!mobileSwipeState.dragging) return;
+    event.preventDefault();
+    app.scrollLeft = mobileSwipeState.scrollLeft - dx;
+    mobileSwipeState.lastX = touch.clientX;
+  }, { passive: false });
+  app.addEventListener("touchend", () => {
+    mobileSwipeState = null;
+  }, { passive: true });
+  app.addEventListener("touchcancel", () => {
+    mobileSwipeState = null;
+  }, { passive: true });
+}
 async function enterApp(user) {
   currentUser = user;
   auth.style.display = "none";
   app.style.display = "grid";
+  setupMobilePanelSwipe();
   focusMobileChatPanel();
   renderSelfName();
   renderSelfAvatar();
