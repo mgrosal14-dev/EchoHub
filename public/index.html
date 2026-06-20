@@ -1575,8 +1575,16 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
   .members { display: none; }
 }
 @media (max-width: 720px) {
-  body { overflow: auto; }
-  .auth-shell, .app { min-height: 100vh; height: auto; grid-template-columns: 1fr; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  .auth-shell {
+    min-height: 100dvh;
+    height: auto;
+    grid-template-columns: 1fr;
+  }
   .auth-poster { min-height: 360px; }
   .neo-shell {
     grid-template-columns: 1fr;
@@ -1588,9 +1596,138 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
   .neo-brand { padding: 30px; }
   .neo-logo { width: 130px; height: 130px; }
   .neo-card { padding: 30px; }
-  .space-rail { display: none; }
-  .sidebar { max-height: 260px; }
-  .chat { min-height: 620px; }
+  .app {
+    display: none;
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100dvh;
+    grid-template-columns: 72px 84vw 100vw 86vw;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    background: #1e1f22;
+  }
+  .app[style*="grid"], .app[style*="block"] {
+    display: grid !important;
+  }
+  .app > * {
+    height: 100dvh;
+    min-height: 0;
+    scroll-snap-align: start;
+  }
+  .space-rail {
+    display: flex;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+    padding: 12px 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    flex-direction: column;
+    align-items: center;
+  }
+  #communityRail {
+    flex-direction: column;
+    min-width: 0;
+  }
+  .space {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+  }
+  .sidebar, .members {
+    display: flex;
+    height: 100dvh;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sidebar {
+    border-right: 1px solid var(--line);
+  }
+  .members {
+    border-left: 1px solid var(--line);
+  }
+  .hub-head, .member-head {
+    min-height: auto;
+    padding: 12px;
+  }
+  .hub-head .head-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+  .channel-list {
+    max-height: none;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel-section {
+    max-height: none;
+    overflow-y: auto;
+  }
+  .chat {
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    border-top: 0;
+  }
+  .chat-head {
+    min-height: auto;
+    padding: 10px 12px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .head-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .chat-search {
+    width: 100%;
+    min-width: 0;
+  }
+  .messages {
+    min-height: 0;
+    max-height: none;
+    padding: 12px;
+    overscroll-behavior: contain;
+  }
+  .composer-wrap {
+    z-index: 16;
+    padding: 8px;
+  }
+  .composer-input {
+    grid-template-columns: 36px minmax(110px, 1fr) 42px 40px 42px 48px;
+    overflow-x: auto;
+  }
+  .composer-circle {
+    width: 30px;
+    min-width: 30px;
+  }
+  .composer-pill {
+    min-width: 38px;
+    font-size: 9px;
+    padding: 0 4px;
+  }
+  .member-list, .pin-list, .voice-list {
+    overflow: visible;
+  }
+}
+@media (max-width: 430px) {
+  .neo-brand, .neo-card { padding: 22px; }
+  .neo-logo { width: 104px; height: 104px; }
+  .auth-switch { grid-template-columns: 1fr; }
+  .room-title { font-size: 17px; }
+  .composer-input {
+    grid-template-columns: 34px minmax(92px, 1fr) 40px 38px 40px 46px;
+    gap: 0;
+  }
+  .composer-input input {
+    padding-inline: 5px;
+  }
 }
 </style>
 </head>
@@ -2825,10 +2962,19 @@ username.addEventListener("input", () => {
   saveAuthFields();
 });
 email.addEventListener("input", saveAuthFields);
+function focusMobileChatPanel() {
+  if (!app || !window.matchMedia("(max-width: 720px)").matches) return;
+  requestAnimationFrame(() => {
+    const chatPanel = document.querySelector(".chat");
+    if (!chatPanel) return;
+    app.scrollLeft = chatPanel.offsetLeft;
+  });
+}
 async function enterApp(user) {
   currentUser = user;
   auth.style.display = "none";
   app.style.display = "grid";
+  focusMobileChatPanel();
   renderSelfName();
   renderSelfAvatar();
   announcePresence();
