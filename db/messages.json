@@ -1,0 +1,47 @@
+[
+  {
+    "id": "seed-1",
+    "channel": "general",
+    "user": "EchoHub",
+    "text": "Welcome to EchoHub. Different from Discord: the hub centers around vibes, status cards, quick channels, pins, and live rooms.",
+    "createdAt": "2026-05-09T00:00:00.000Z",
+    "reactions": {
+      "spark": [
+        "EchoHub"
+      ]
+    },
+    "pinned": true
+  },
+  {
+    "id": "1778314846919-f67db804ef614",
+    "channel": "general",
+    "user": "BrickFrag",
+    "text": "Hello",
+    "replyTo": null,
+    "createdAt": "2026-05-09T08:20:46.919Z",
+    "reactions": {
+      "boost": []
+    },
+    "pinned": true
+  },
+  {
+    "id": "1778330404266-03c7c30c2ba83",
+    "channel": "general",
+    "user": "BrickFrag",
+    "text": "Welcome to my app everybody",
+    "replyTo": null,
+    "createdAt": "2026-05-09T12:40:04.266Z",
+    "reactions": {},
+    "pinned": true
+  },
+  {
+    "id": "1778330439996-f30e67526f598",
+    "channel": "general",
+    "user": "MglRosal",
+    "text": "Haiii",
+    "replyTo": null,
+    "createdAt": "2026-05-09T12:40:39.996Z",
+    "reactions": {},
+    "pinned": false
+  }
+]
