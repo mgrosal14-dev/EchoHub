@@ -1118,9 +1118,34 @@ button { border: 0; color: inherit; cursor: pointer; }
   padding: 0 0 18px;
 }
 .channel-empty-card {
-  max-width: 560px;
+  max-width: 620px;
   display: grid;
-  gap: 7px;
+  gap: 9px;
+}
+.channel-welcome-logo {
+  width: min(100%, 620px);
+  display: grid;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.channel-welcome-logo img {
+  width: 100%;
+  max-height: 210px;
+  object-fit: contain;
+  border-radius: 18px;
+  background: #000;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
+}
+.channel-welcome-caption {
+  width: fit-content;
+  color: #f4f4f5;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.72);
+  padding-bottom: 3px;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
 }
 .channel-empty-icon {
   width: 62px;
@@ -3597,6 +3622,14 @@ function echoHubWordmarkMarkup(isCompact = false) {
     </div>
   `;
 }
+function channelWelcomeLogoMarkup() {
+  return `
+    <div class="channel-welcome-logo">
+      <img src="uploads/1781871163819-EchoHubAllThreeLogos.png" alt="EchoHub logo banner">
+      <div class="channel-welcome-caption">EchoHub community space</div>
+    </div>
+  `;
+}
 function renderEmptyChannelWelcome() {
   const channel = channels.find((item) => item.id === currentChannel);
   const isVoice = isVoiceChannel(channel);
@@ -3605,7 +3638,7 @@ function renderEmptyChannelWelcome() {
   return `
     <div class="channel-empty">
       <div class="channel-empty-card">
-        ${echoHubWordmarkMarkup()}
+        ${channelWelcomeLogoMarkup()}
         <div class="channel-empty-icon">${isVoice ? ">" : "#"}</div>
         <div class="channel-empty-title">Welcome to ${isVoice ? "" : "#"}${escapeHtml(name)}!</div>
         <div class="channel-empty-subtitle">This is the start of the ${isVoice ? escapeHtml(name) : `#${escapeHtml(name)}`} channel.</div>
