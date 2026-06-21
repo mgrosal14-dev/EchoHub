@@ -2285,6 +2285,15 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
     <button class="secondary" type="button" onclick="closeEditMessageModal()">Cancel</button>
   </form>
 </div>
+<div id="deleteMessageModal" class="modal">
+  <form class="modal-panel" onsubmit="event.preventDefault();">
+    <h2>Delete message?</h2>
+    <p class="muted">Choose who this message should disappear for.</p>
+    <button class="primary" type="button" onclick="confirmDeleteForEveryone()">Delete for everyone</button>
+    <button class="secondary" type="button" onclick="confirmDeleteForMe()">Delete for you</button>
+    <button class="secondary" type="button" onclick="closeDeleteMessageModal()">Cancel</button>
+  </form>
+</div>
 <div id="upgradeModal" class="modal">
   <form class="modal-panel" onsubmit="event.preventDefault(); submitUpgrade();">
     <h2>Upgrade</h2>
@@ -2354,6 +2363,7 @@ let inCall = false;
 let channelTypeMap = {};
 let renameChannelId = null;
 let editMessageId = null;
+let pendingDeleteMessageId = null;
 let gifResults = [];
 let gifSearchTimer = null;
 let customEmojis = [];
@@ -2858,6 +2868,23 @@ function readLocal(key, fallback) {
 }
 function writeLocal(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+function hiddenMessageKey() {
+  return currentUser?.username ? `echohub_hidden_messages_${currentUser.username}` : "echohub_hidden_messages_guest";
+}
+function getHiddenMessageIds(channelId = currentChannel) {
+  const hidden = readLocal(hiddenMessageKey(), {});
+  return new Set((hidden[channelId] || []).map((id) => String(id)));
+}
+function hideMessageForMe(channelId, messageId) {
+  if (!channelId || !messageId) return;
+  const hidden = readLocal(hiddenMessageKey(), {});
+  hidden[channelId] = [...new Set([...(hidden[channelId] || []), String(messageId)])];
+  writeLocal(hiddenMessageKey(), hidden);
+}
+function visibleMessagesForCurrentChannel(list = messages) {
+  const hidden = getHiddenMessageIds(currentChannel);
+  return list.filter((message) => !hidden.has(String(message.id)));
 }
 let autoSaveTimer = null;
 function scheduleAutoSave(reason = "update") {
@@ -3416,13 +3443,14 @@ function renderEmptyChannelWelcome() {
   `;
 }
 function renderMessages() {
-  if (!messages.length) {
+  const visibleMessages = visibleMessagesForCurrentChannel(messages);
+  if (!visibleMessages.length) {
     messagesEl.innerHTML = renderEmptyChannelWelcome();
     renderPins();
     return;
   }
-  messagesEl.innerHTML = messages.map((message, index) => {
-    const previous = messages[index - 1];
+  messagesEl.innerHTML = visibleMessages.map((message, index) => {
+    const previous = visibleMessages[index - 1];
     const grouped = previous &&
       previous.username === message.username &&
       Math.abs(new Date(message.timestamp) - new Date(previous.timestamp)) < 5 * 60 * 1000;
@@ -4454,6 +4482,7 @@ async function joinRoom(room) {
     renderMessages();
     socket.emit("join_channel", room);
     messages = await fetchJSON(`/messages/${room}`);
+    messages = visibleMessagesForCurrentChannel(messages);
     renderMessages();
   }
   await loadChannelSettings();
@@ -5226,19 +5255,42 @@ function submitEditMessage() {
 }
 function deleteMessage(messageId) {
   if (!currentChannel || !messageId) return;
+  pendingDeleteMessageId = messageId;
+  document.getElementById("deleteMessageModal").style.display = "grid";
+}
+function closeDeleteMessageModal() {
+  const modal = document.getElementById("deleteMessageModal");
+  if (modal) modal.style.display = "none";
+  pendingDeleteMessageId = null;
+}
+function confirmDeleteForEveryone() {
+  const messageId = pendingDeleteMessageId;
+  if (!currentChannel || !messageId) return;
   socket.emit("delete_message", { channelId: currentChannel, messageId, username: currentUser?.username || "" });
   messages = messages.filter((message) => String(message.id) !== String(messageId));
   renderMessages();
-  pushToast("Message deleted", "Your message was removed.");
+  closeDeleteMessageModal();
+  pushToast("Message deleted", "Removed for everyone.");
+}
+function confirmDeleteForMe() {
+  const messageId = pendingDeleteMessageId;
+  if (!currentChannel || !messageId) return;
+  hideMessageForMe(currentChannel, messageId);
+  renderMessages();
+  scheduleAutoSave("message_hidden_for_me");
+  closeDeleteMessageModal();
+  pushToast("Message hidden", "Removed only for you.");
 }
 async function searchMessages() {
   const q = searchInput.value.trim();
   if (!q) {
     messages = await fetchJSON(`/messages/${currentChannel}`);
+    messages = visibleMessagesForCurrentChannel(messages);
     renderMessages();
     return;
   }
   messages = await fetchJSON(`/search/${currentChannel}?q=${encodeURIComponent(q)}`);
+  messages = visibleMessagesForCurrentChannel(messages);
   renderMessages();
 }
 function setReply(user) {
@@ -5730,6 +5782,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
   closeProfileModal();
   closeUserProfileModal();
+  closeDeleteMessageModal();
   emojiPop.style.display = "none";
   gifPop.style.display = "none";
 });
