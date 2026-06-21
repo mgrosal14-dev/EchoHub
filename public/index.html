@@ -1234,10 +1234,10 @@ button { border: 0; color: inherit; cursor: pointer; }
   background: #383a40;
   border-radius: 4px;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 54px 44px 50px 66px;
+  grid-template-columns: 38px minmax(0, 1fr) repeat(5, 34px);
   align-items: center;
-  padding: 0 8px 0 0;
-  gap: 2px;
+  padding: 0 6px 0 0;
+  gap: 1px;
 }
 .composer-input input {
   border: 0;
@@ -1247,22 +1247,26 @@ button { border: 0; color: inherit; cursor: pointer; }
 }
 .composer-input input::placeholder { color: #8b9098; }
 .composer-circle {
-  width: 30px;
-  height: 30px;
-  min-height: 30px;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
   border-radius: 50%;
   background: transparent;
   color: #b5bac1;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 900;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  justify-self: center;
 }
 .composer-pill {
-  width: auto;
-  min-width: 40px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 10px;
-  letter-spacing: 0.02em;
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 14px;
+  letter-spacing: 0;
 }
 .mobile-send-btn {
   display: none;
@@ -1748,17 +1752,17 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
     padding: 8px;
   }
   .composer-input {
-    grid-template-columns: 36px minmax(110px, 1fr) 42px 40px 42px 48px 48px;
+    grid-template-columns: 36px minmax(110px, 1fr) repeat(5, 32px);
     overflow-x: auto;
   }
   .composer-circle {
-    width: 30px;
-    min-width: 30px;
+    width: 28px;
+    min-width: 28px;
   }
   .composer-pill {
-    min-width: 38px;
-    font-size: 9px;
-    padding: 0 4px;
+    min-width: 28px;
+    font-size: 13px;
+    padding: 0;
   }
   .mobile-send-btn {
     display: grid;
@@ -1775,7 +1779,7 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
   .auth-switch { grid-template-columns: 1fr; }
   .room-title { font-size: 17px; }
   .composer-input {
-    grid-template-columns: 34px minmax(92px, 1fr) 40px 38px 40px 46px 44px;
+    grid-template-columns: 34px minmax(92px, 1fr) repeat(5, 30px);
     gap: 0;
   }
   .composer-input input {
@@ -1896,18 +1900,18 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
       <div id="typing" class="typing"></div>
       <div id="replyBox" class="reply-box">
         <span id="replyText"></span>
-        <button class="composer-circle composer-pill" type="button" title="Add emoji to reply" aria-label="Add emoji to reply" onclick="toggleEmojiPicker(event, 'messageInput')">EMOJI</button>
+        <button class="composer-circle composer-pill" type="button" title="Add emoji to reply" aria-label="Add emoji to reply" onclick="toggleEmojiPicker(event, 'messageInput')">☺</button>
         <button class="mini-btn" onclick="clearReply()">Cancel</button>
       </div>
       <div class="composer">
         <div class="composer-input">
           <button class="composer-circle" type="button" title="Attach file" aria-label="Attach file" onclick="document.getElementById('fileInput').click()">+</button>
           <input id="messageInput" placeholder="Message this channel" oninput="typing()" onkeydown="handleComposerKeydown(event)">
-          <button class="composer-circle composer-pill" type="button" title="Send gift" aria-label="Send gift" onclick="sendGift()">GIFT</button>
+          <button class="composer-circle composer-pill" type="button" title="Send gift" aria-label="Send gift" onclick="sendGift()">▣</button>
           <button class="composer-circle composer-pill" type="button" title="Search GIFs" aria-label="Search GIFs" onclick="toggleGifPicker(event)">GIF</button>
-          <button class="composer-circle composer-pill" type="button" title="Send sticker" aria-label="Send sticker" onclick="quickSticker()">STKR</button>
-          <button class="composer-circle composer-pill emoji-open-btn" type="button" title="Open emoji picker" aria-label="Open emoji picker" onclick="toggleEmojiPicker(event, 'messageInput')">EMOJI</button>
-          <button class="composer-circle composer-pill mobile-send-btn" type="button" title="Send message" aria-label="Send message" onclick="sendMessage()">SEND</button>
+          <button class="composer-circle composer-pill" type="button" title="Send sticker" aria-label="Send sticker" onclick="quickSticker()">◕</button>
+          <button class="composer-circle composer-pill emoji-open-btn" type="button" title="Open emoji picker" aria-label="Open emoji picker" onclick="toggleEmojiPicker(event, 'messageInput')">☺</button>
+          <button class="composer-circle composer-pill mobile-send-btn" type="button" title="Send message" aria-label="Send message" onclick="sendMessage()">➤</button>
         </div>
         <input id="fileInput" type="file" style="display:none" onchange="uploadAttachment()">
       </div>
