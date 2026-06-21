@@ -556,6 +556,117 @@ button { border: 0; color: inherit; cursor: pointer; }
   border-bottom: 1px solid #232428;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
 }
+.hub-brand-footer {
+  margin: auto 10px 12px;
+  padding-top: 12px;
+}
+.echohub-wordmark {
+  position: relative;
+  width: min(100%, 560px);
+  display: grid;
+  gap: 18px;
+  padding: 22px 24px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 26% 0%, rgba(255, 255, 255, 0.22), transparent 18%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0 12%, transparent 12% 42%, rgba(255, 255, 255, 0.08) 42% 47%, transparent 47%),
+    linear-gradient(145deg, #030303, #101114 52%, #050505);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 0 34px rgba(255, 255, 255, 0.08),
+    0 18px 42px rgba(0, 0, 0, 0.35);
+}
+.echohub-wordmark::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+.echohub-wordmark::after {
+  content: "";
+  position: absolute;
+  width: 110px;
+  height: 2px;
+  top: 12px;
+  left: 18%;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  box-shadow: 0 0 18px #fff;
+  pointer-events: none;
+}
+.echohub-wordmark-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  color: #f8f8f8;
+  font-size: clamp(30px, 6vw, 54px);
+  font-style: italic;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-shadow: 0 1px 0 #000, 0 0 15px rgba(255, 255, 255, 0.52);
+}
+.echohub-wordmark-row::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: -8px;
+  width: min(72%, 360px);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #fff 18%, #d7d7d7 82%, transparent);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.72);
+}
+.echohub-wordmark-icon {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.78);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 25%, #3b3b3b, #070707 64%);
+  color: #fff;
+  font-size: 17px;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: -0.08em;
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.22), 0 0 14px rgba(255, 255, 255, 0.22);
+}
+.echohub-wordmark-icon.hub-icon {
+  font-size: 16px;
+  letter-spacing: -0.1em;
+}
+.echohub-wordmark.compact {
+  gap: 9px;
+  padding: 12px 12px 14px;
+  border-radius: 16px;
+}
+.echohub-wordmark.compact::before { inset: 6px; border-radius: 13px; }
+.echohub-wordmark.compact::after { width: 58px; top: 8px; left: 14%; }
+.echohub-wordmark.compact .echohub-wordmark-row {
+  justify-content: center;
+  gap: 8px;
+  font-size: 24px;
+}
+.echohub-wordmark.compact .echohub-wordmark-row::after {
+  width: 64%;
+  height: 2px;
+  bottom: -5px;
+}
+.echohub-wordmark.compact .echohub-wordmark-icon {
+  width: 32px;
+  height: 32px;
+  flex-basis: 32px;
+  font-size: 10px;
+  border-width: 1px;
+}
 .member-head { position: relative; }
 .upgrade-top-btn {
   position: absolute;
@@ -1873,6 +1984,12 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
       <div class="panel-title">Join Applications</div>
       <div id="applicationList" class="member-list"></div>
     </section>
+    <div class="hub-brand-footer" aria-label="EchoHub wordmark">
+      <div class="echohub-wordmark compact">
+        <div class="echohub-wordmark-row"><span class="echohub-wordmark-icon">EH</span><span>Echo</span></div>
+        <div class="echohub-wordmark-row"><span class="echohub-wordmark-icon hub-icon">HB</span><span>Hub</span></div>
+      </div>
+    </div>
   </aside>
   <section class="chat">
     <header class="chat-head">
@@ -3472,6 +3589,14 @@ function renderSectionOptions() {
   if (!uniqueSections.length) uniqueSections.push("Hub");
   categoryInput.innerHTML = uniqueSections.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
 }
+function echoHubWordmarkMarkup(isCompact = false) {
+  return `
+    <div class="echohub-wordmark ${isCompact ? "compact" : ""}">
+      <div class="echohub-wordmark-row"><span class="echohub-wordmark-icon">EH</span><span>Echo</span></div>
+      <div class="echohub-wordmark-row"><span class="echohub-wordmark-icon hub-icon">HB</span><span>Hub</span></div>
+    </div>
+  `;
+}
 function renderEmptyChannelWelcome() {
   const channel = channels.find((item) => item.id === currentChannel);
   const isVoice = isVoiceChannel(channel);
@@ -3480,6 +3605,7 @@ function renderEmptyChannelWelcome() {
   return `
     <div class="channel-empty">
       <div class="channel-empty-card">
+        ${echoHubWordmarkMarkup()}
         <div class="channel-empty-icon">${isVoice ? ">" : "#"}</div>
         <div class="channel-empty-title">Welcome to ${isVoice ? "" : "#"}${escapeHtml(name)}!</div>
         <div class="channel-empty-subtitle">This is the start of the ${isVoice ? escapeHtml(name) : `#${escapeHtml(name)}`} channel.</div>
