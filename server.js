@@ -1756,6 +1756,27 @@ app.get("/messages/:channelId", (req, res) => {
   res.json(messages[req.params.channelId] || []);
 });
 
+app.delete("/messages/:channelId/:messageId", requireAuth, (req, res) => {
+  const channelId = String(req.params.channelId || "").trim();
+  const messageId = String(req.params.messageId || "").trim();
+  if (!channelId || !messageId) return res.status(400).json({ error: "channelId and messageId required!" });
+  const messages = readDB("messages.json");
+  const channelMessages = Array.isArray(messages[channelId]) ? messages[channelId] : [];
+  const target = channelMessages.find((message) => String(message.id) === messageId);
+  if (!target) return res.status(404).json({ error: "Message not found!" });
+  const channels = readChannelsList();
+  const channel = channels.find((item) => String(item.id) === channelId) || {};
+  const community = ensureDefaultCommunity().find((item) => item.id === channel.communityId) || {};
+  const state = discordService.loadState();
+  const isAuthor = String(target.username || "").toLowerCase() === String(req.authUser || "").toLowerCase();
+  const isStaff = isCommunityStaff(state, community, req.authUser);
+  if (!isAuthor && !isStaff) return res.status(403).json({ error: "You can only delete your own messages." });
+  messages[channelId] = channelMessages.filter((message) => String(message.id) !== messageId);
+  writeDB("messages.json", messages);
+  io.emit("message_deleted", { channelId, messageId });
+  res.json({ ok: true, channelId, messageId });
+});
+
 // Search messages
 app.get("/search/:channelId", (req, res) => {
   const { q } = req.query;
@@ -1896,7 +1917,7 @@ io.on("connection", (socket) => {
     if (actor && String(target.username || "").toLowerCase() !== actor.toLowerCase()) return;
     messages[channelId] = messages[channelId].filter((m) => String(m.id) !== targetId);
     writeDB("messages.json", messages);
-    io.to(channelId).emit("message_deleted", { channelId, messageId: targetId });
+    io.emit("message_deleted", { channelId, messageId: targetId });
   });
 
   // React to a message

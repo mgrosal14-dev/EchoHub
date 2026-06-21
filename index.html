@@ -5263,14 +5263,21 @@ function closeDeleteMessageModal() {
   if (modal) modal.style.display = "none";
   pendingDeleteMessageId = null;
 }
-function confirmDeleteForEveryone() {
+async function confirmDeleteForEveryone() {
   const messageId = pendingDeleteMessageId;
   if (!currentChannel || !messageId) return;
-  socket.emit("delete_message", { channelId: currentChannel, messageId, username: currentUser?.username || "" });
+  const channelId = currentChannel;
+  const deleted = await fetchJSON(`/messages/${encodeURIComponent(channelId)}/${encodeURIComponent(messageId)}`, {
+    method: "DELETE",
+  }).catch((error) => {
+    socket.emit("delete_message", { channelId, messageId, username: currentUser?.username || "" });
+    pushToast("Delete fallback", error.message || "Used socket delete.");
+    return null;
+  });
   messages = messages.filter((message) => String(message.id) !== String(messageId));
   renderMessages();
   closeDeleteMessageModal();
-  pushToast("Message deleted", "Removed for everyone.");
+  pushToast("Message deleted", deleted ? "Removed for everyone." : "Delete sent to server.");
 }
 function confirmDeleteForMe() {
   const messageId = pendingDeleteMessageId;
