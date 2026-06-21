@@ -864,6 +864,45 @@ button { border: 0; color: inherit; cursor: pointer; }
   white-space: nowrap;
   font-weight: 800;
 }
+.profile-view {
+  display: grid;
+  gap: 14px;
+}
+.profile-view-top {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 10px;
+  background: #232428;
+  border: 1px solid var(--line);
+}
+.profile-view-avatar {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: visible;
+  position: relative;
+  font-size: 24px;
+  font-weight: 900;
+}
+.profile-view-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.profile-view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.profile-click {
+  cursor: pointer;
+}
 .profile-self-card { position: relative; }
 .title-top-btn {
   position: absolute;
@@ -1224,6 +1263,9 @@ button { border: 0; color: inherit; cursor: pointer; }
   border-radius: 999px;
   font-size: 10px;
   letter-spacing: 0.02em;
+}
+.mobile-send-btn {
+  display: none;
 }
 .emoji-open-btn {
   color: #f2f3f5;
@@ -1706,7 +1748,7 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
     padding: 8px;
   }
   .composer-input {
-    grid-template-columns: 36px minmax(110px, 1fr) 42px 40px 42px 48px;
+    grid-template-columns: 36px minmax(110px, 1fr) 42px 40px 42px 48px 48px;
     overflow-x: auto;
   }
   .composer-circle {
@@ -1718,6 +1760,11 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
     font-size: 9px;
     padding: 0 4px;
   }
+  .mobile-send-btn {
+    display: grid;
+    background: #f2f3f5;
+    color: #111214;
+  }
   .member-list, .pin-list, .voice-list {
     overflow: visible;
   }
@@ -1728,7 +1775,7 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
   .auth-switch { grid-template-columns: 1fr; }
   .room-title { font-size: 17px; }
   .composer-input {
-    grid-template-columns: 34px minmax(92px, 1fr) 40px 38px 40px 46px;
+    grid-template-columns: 34px minmax(92px, 1fr) 40px 38px 40px 46px 44px;
     gap: 0;
   }
   .composer-input input {
@@ -1860,6 +1907,7 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
           <button class="composer-circle composer-pill" type="button" title="Search GIFs" aria-label="Search GIFs" onclick="toggleGifPicker(event)">GIF</button>
           <button class="composer-circle composer-pill" type="button" title="Send sticker" aria-label="Send sticker" onclick="quickSticker()">STKR</button>
           <button class="composer-circle composer-pill emoji-open-btn" type="button" title="Open emoji picker" aria-label="Open emoji picker" onclick="toggleEmojiPicker(event, 'messageInput')">EMOJI</button>
+          <button class="composer-circle composer-pill mobile-send-btn" type="button" title="Send message" aria-label="Send message" onclick="sendMessage()">SEND</button>
         </div>
         <input id="fileInput" type="file" style="display:none" onchange="uploadAttachment()">
       </div>
@@ -2193,6 +2241,13 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
     <button class="secondary" type="button" onclick="closeProfileModal()">Cancel</button>
   </form>
 </div>
+<div id="userProfileModal" class="modal">
+  <form class="modal-panel" onsubmit="event.preventDefault();">
+    <h2>User profile</h2>
+    <div id="userProfileBody" class="profile-view"></div>
+    <button class="secondary" type="button" onclick="closeUserProfileModal()">Close</button>
+  </form>
+</div>
 <div id="renameChannelModal" class="modal">
   <form class="modal-panel" onsubmit="event.preventDefault(); submitRenameChannel();">
     <h2>Rename channel</h2>
@@ -2475,6 +2530,7 @@ const profileAvatarPicker = document.getElementById("profileAvatarPicker");
 const profileColorPicker = document.getElementById("profileColorPicker");
 const profileImageFile = document.getElementById("profileImageFile");
 const profileUploadHint = document.getElementById("profileUploadHint");
+const userProfileBody = document.getElementById("userProfileBody");
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 const micBtn = document.getElementById("micBtn");
@@ -2737,6 +2793,60 @@ function renderSelfAvatar() {
 function avatarHtml(user) {
   const found = [...members, ...allUsers].find((member) => member.username === user);
   return avatarMarkup(found && found.avatar, user);
+}
+function jsArg(value) {
+  return JSON.stringify(String(value || "")).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026").replace(/"/g, "&quot;");
+}
+function findUserProfile(username) {
+  const name = String(username || "").trim();
+  const live = online.find((user) => user.username === name);
+  const member = members.find((user) => user.username === name);
+  const known = allUsers.find((user) => user.username === name);
+  const self = currentUser && currentUser.username === name ? currentUser : null;
+  const community = communities.find((item) => item.id === currentCommunityId) || {};
+  const scopedRole = community.owner === name ? "owner" : ((memberRolesByCommunity[currentCommunityId] || {})[name] || "");
+  const status = (live && live.presence) || (live ? "online" : "offline");
+  return {
+    username: name,
+    avatar: (live && live.avatar) || (member && member.avatar) || (known && known.avatar) || (self && self.avatar) || "",
+    accent: (live && live.accent) || (member && member.accent) || (known && known.accent) || (self && self.accent) || "#5865f2",
+    title: name === currentUser?.username ? (myTitle || "") : ((known && known.title) || ""),
+    status,
+    role: scopedRole || (member && member.role) || (known && known.role) || "member",
+    isFriend: friends.includes(name),
+    isSelf: currentUser && currentUser.username === name,
+  };
+}
+function openUserProfile(username) {
+  if (!userProfileBody) return;
+  const profile = findUserProfile(username);
+  if (!profile.username) return;
+  const canDM = currentUser && !profile.isSelf && profile.isFriend;
+  const canAdd = currentUser && !profile.isSelf && !profile.isFriend;
+  userProfileBody.innerHTML = `
+    <div class="profile-view-top">
+      <div class="profile-view-avatar" style="background:${escapeHtml(profile.accent)}">
+        ${avatarMarkup(profile.avatar, profile.username)}
+        <span class="presence-badge ${presenceClass(profile.status)}"></span>
+      </div>
+      <div style="min-width:0;">
+        <div class="profile-name" style="font-size:20px;">${escapeHtml(profile.username)}${titleBadge(profile.title)}</div>
+        <div class="muted">${escapeHtml(presenceLabel(profile.status))} - ${escapeHtml(profile.role)}</div>
+        <div class="muted">${profile.isFriend ? "Friend" : profile.isSelf ? "This is you" : "Not friends yet"}</div>
+      </div>
+    </div>
+    <div class="profile-view-actions">
+      ${profile.isSelf ? `<button class="mini-btn" type="button" onclick="closeUserProfileModal();openProfileModal()">Edit Profile</button>` : ""}
+      ${canDM ? `<button class="mini-btn" type="button" onclick="closeUserProfileModal();openDM(${jsArg(profile.username)})">Message</button>` : ""}
+      ${canAdd ? `<button class="mini-btn" type="button" onclick="addFriend(${jsArg(profile.username)})">Add Friend</button>` : ""}
+      ${isCurrentUserCommunityOwner() && !profile.isSelf ? `<button class="mini-btn" type="button" onclick="setUserRole(${jsArg(profile.username)},'admin')">Make Admin</button>` : ""}
+    </div>
+  `;
+  document.getElementById("userProfileModal").style.display = "grid";
+}
+function closeUserProfileModal() {
+  const modal = document.getElementById("userProfileModal");
+  if (modal) modal.style.display = "none";
 }
 function showAuthMessage(text) { authError.textContent = text; }
 function readLocal(key, fallback) {
@@ -3323,11 +3433,11 @@ function renderMessages() {
     })() : "";
     return `
       <article class="message ${grouped ? "grouped" : ""}" id="message-${escapeHtml(message.id)}">
-        <div class="avatar">${avatarHtml(message.username)}</div>
+        <div class="avatar profile-click" data-username="${escapeHtml(message.username)}">${avatarHtml(message.username)}</div>
         <div class="message-main">
           ${message.replyTo ? `<div class="reply-line">Replying to ${escapeHtml(message.replyTo.username || message.replyTo)}</div>` : ""}
           <div class="message-top">
-            <span class="author">${escapeHtml(message.username)}</span>
+            <span class="author profile-click" data-username="${escapeHtml(message.username)}">${escapeHtml(message.username)}</span>
             <span class="time">${new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
             ${message.pinned ? `<span class="pinned">Pinned</span>` : ""}
           </div>
@@ -3384,7 +3494,7 @@ function renderMembers() {
       };
     });
   friendList.innerHTML = friendRows.map((member) => `
-    <div class="member-card ${member.status}">
+    <div class="member-card profile-click ${member.status}" data-username="${escapeHtml(member.username)}">
       <div class="avatar" style="background:${escapeHtml(member.accent)}">${avatarMarkup(member.avatar, member.username)}<span class="presence-badge ${presenceClass(member.status)}"></span></div>
       <div>
         <div class="profile-name">${escapeHtml(member.username)}${titleBadge(member.title)}</div>
@@ -3402,7 +3512,7 @@ function renderMembers() {
     </div>
   `).join("") || '<div class="muted">No friends yet.</div>';
   callFriendList.innerHTML = friendRows.map((member) => `
-    <button class="member-card ${member.status}" ${member.status === "offline" ? "disabled" : ""} onclick="startFriendCall('${escapeHtml(member.username)}')">
+    <button class="member-card ${member.status}" data-username="${escapeHtml(member.username)}" ${member.status === "offline" ? "disabled" : ""} onclick="startFriendCall('${escapeHtml(member.username)}')">
       <div class="avatar" style="background:${escapeHtml(member.accent)}">${avatarMarkup(member.avatar, member.username)}<span class="presence-badge ${presenceClass(member.status)}"></span></div>
       <div>
         <div class="profile-name">${escapeHtml(member.username)}${titleBadge(member.title)}</div>
@@ -3416,7 +3526,7 @@ function renderMembers() {
 function renderDMList() {
   const friendRows = friends.filter((name) => name !== currentUser.username);
   dmList.innerHTML = friendRows.map((username) => `
-    <button class="member-card" onclick="openDM('${escapeHtml(username)}')">
+    <button class="member-card" data-username="${escapeHtml(username)}" onclick="openDM('${escapeHtml(username)}')">
       <div class="avatar">${escapeHtml(initials(username))}</div>
       <div>
         <div class="profile-name">${escapeHtml(username)}</div>
@@ -3529,7 +3639,7 @@ async function loadCommunityHub() {
   await loadOnboardingSettings();
   const discover = await fetchJSON(`/communities/discover?username=${encodeURIComponent(currentUser.username)}`).catch(() => []);
   discoverList.innerHTML = discover.map((community) => `
-    <div class="member-card">
+    <div class="member-card profile-click" data-username="${escapeHtml(username)}">
       <div class="avatar">${community.icon ? `<img src="${escapeHtml(community.icon)}" alt="">` : escapeHtml(initials(community.name))}</div>
       <div>
         <div class="profile-name">${escapeHtml(community.name)}</div>
@@ -3829,7 +3939,7 @@ function renderRandomPeople() {
     .filter((u) => !q || u.username.toLowerCase().includes(q))
     .slice(0, 20);
   const markup = randomPeople.map((person) => `
-    <div class="member-card ${(presenceByName[person.username] || (onlineNames.has(person.username) ? "online" : "offline"))}">
+    <div class="member-card profile-click ${(presenceByName[person.username] || (onlineNames.has(person.username) ? "online" : "offline"))}" data-username="${escapeHtml(person.username)}">
       <div class="avatar">${avatarMarkup(person.avatar, person.username)}<span class="presence-badge ${presenceClass(presenceByName[person.username] || (onlineNames.has(person.username) ? "online" : "offline"))}"></span></div>
       <div>
         <div class="profile-name">${escapeHtml(person.username)}${titleBadge(person.title || "")}</div>
@@ -5081,7 +5191,7 @@ function submitEditMessage() {
 }
 function deleteMessage(messageId) {
   if (!currentChannel || !messageId) return;
-  socket.emit("delete_message", { channelId: currentChannel, messageId });
+  socket.emit("delete_message", { channelId: currentChannel, messageId, username: currentUser?.username || "" });
   messages = messages.filter((message) => String(message.id) !== String(messageId));
   renderMessages();
   pushToast("Message deleted", "Your message was removed.");
@@ -5487,8 +5597,16 @@ socket.on("message_edited", ({ messageId, newText }) => {
   renderMessages();
   scheduleAutoSave("message_edited");
 });
-socket.on("message_deleted", (messageId) => {
-  messages = messages.filter((message) => message.id !== messageId);
+socket.on("message_deleted", (payload) => {
+  const messageId = typeof payload === "object" ? payload.messageId : payload;
+  const channelId = typeof payload === "object" ? payload.channelId : currentChannel;
+  if (channelId && currentChannel && String(channelId) !== String(currentChannel)) return;
+  messages = messages.filter((message) => String(message.id) !== String(messageId));
+  const messageCache = readLocal("echohub_messages_cache", {});
+  if (channelId && Array.isArray(messageCache[channelId])) {
+    messageCache[channelId] = messageCache[channelId].filter((message) => String(message.id) !== String(messageId));
+    writeLocal("echohub_messages_cache", messageCache);
+  }
   renderMessages();
   scheduleAutoSave("message_deleted");
 });
@@ -5567,9 +5685,16 @@ document.addEventListener("click", (event) => {
     gifPop.style.display = "none";
   }
 });
+document.addEventListener("click", (event) => {
+  if (event.target.closest("button,input,textarea,select,a,.modal,.context-menu,.emoji-pop,.gif-pop")) return;
+  const profileTarget = event.target.closest(".profile-click,[data-username].member-card");
+  const username = profileTarget?.dataset?.username;
+  if (username) openUserProfile(username);
+});
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
   closeProfileModal();
+  closeUserProfileModal();
   emojiPop.style.display = "none";
   gifPop.style.display = "none";
 });

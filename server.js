@@ -1886,13 +1886,17 @@ io.on("connection", (socket) => {
   });
 
   // Delete a message
-  socket.on("delete_message", ({ channelId, messageId }) => {
+  socket.on("delete_message", ({ channelId, messageId, username }) => {
     const messages = readDB("messages.json");
     if (!messages[channelId]) return;
     const targetId = String(messageId || "");
+    const actor = String((onlineUsers[socket.id] && onlineUsers[socket.id].username) || username || "");
+    const target = messages[channelId].find((m) => String(m.id) === targetId);
+    if (!target) return;
+    if (actor && String(target.username || "").toLowerCase() !== actor.toLowerCase()) return;
     messages[channelId] = messages[channelId].filter((m) => String(m.id) !== targetId);
     writeDB("messages.json", messages);
-    io.to(channelId).emit("message_deleted", targetId);
+    io.to(channelId).emit("message_deleted", { channelId, messageId: targetId });
   });
 
   // React to a message
