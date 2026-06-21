@@ -1361,6 +1361,13 @@ button { border: 0; color: inherit; cursor: pointer; }
   display: grid;
   gap: 12px;
 }
+.change-username-btn {
+  border-color: rgba(242, 243, 245, 0.42);
+  background: #2f3136;
+  color: #f2f3f5;
+  font-weight: 900;
+  width: 100%;
+}
 #upgradeModal .modal-panel {
   width: min(680px, 100%);
 }
@@ -2219,6 +2226,7 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
 <div id="profileModal" class="modal">
   <form class="modal-panel" onsubmit="event.preventDefault(); saveProfile();">
     <h2>Edit profile</h2>
+    <button class="secondary change-username-btn" type="button" onclick="openChangeUsernameModal()">Change username</button>
     <label class="field">Avatar text or image URL<input id="profileAvatarInput" placeholder="Ex: AB or https://..."></label>
     <div style="display:flex;gap:8px;align-items:center;">
       <input id="profileImageFile" type="file" accept="image/*" style="display:none" onchange="uploadProfileImage()">
@@ -2241,8 +2249,18 @@ video { width: 100%; min-height: 110px; background: #111214; object-fit: cover; 
       <div class="muted" style="margin-bottom:6px;">Quick colors</div>
       <div id="profileColorPicker" class="color-picker"></div>
     </div>
+    <button class="secondary change-username-btn" type="button" onclick="openChangeUsernameModal()">Change username</button>
     <button class="primary">Save</button>
     <button class="secondary" type="button" onclick="closeProfileModal()">Cancel</button>
+  </form>
+</div>
+<div id="changeUsernameModal" class="modal">
+  <form class="modal-panel" onsubmit="event.preventDefault(); submitChangeUsername();">
+    <h2>Change username</h2>
+    <label class="field">New username<input id="changeUsernameInput" placeholder="New username"></label>
+    <div id="changeUsernameWarning" class="muted" style="display:none;">Are you sure?, You will not be able to change your username for 30 days</div>
+    <button class="secondary" type="button" onclick="closeChangeUsernameModal()">Cancel</button>
+    <button class="primary" type="submit">Done</button>
   </form>
 </div>
 <div id="userProfileModal" class="modal">
@@ -2364,6 +2382,7 @@ let channelTypeMap = {};
 let renameChannelId = null;
 let editMessageId = null;
 let pendingDeleteMessageId = null;
+let changeUsernameConfirming = false;
 let gifResults = [];
 let gifSearchTimer = null;
 let customEmojis = [];
@@ -2878,6 +2897,16 @@ function readLocal(key, fallback) {
 function writeLocal(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
+function profileCacheKey(username = currentUser?.username) {
+  return username ? `echohub_profile_cache_${username}` : "echohub_profile_cache_guest";
+}
+function saveProfileCache(username, profile) {
+  if (!username) return;
+  writeLocal(profileCacheKey(username), { ...profile, savedAt: new Date().toISOString() });
+}
+function readProfileCache(username) {
+  return readLocal(profileCacheKey(username), {});
+}
 function hiddenMessageKey() {
   return currentUser?.username ? `echohub_hidden_messages_${currentUser.username}` : "echohub_hidden_messages_guest";
 }
@@ -3189,6 +3218,9 @@ function setupMobilePanelSwipe() {
 }
 async function enterApp(user) {
   currentUser = user;
+  const cachedProfile = readProfileCache(user.username);
+  if (cachedProfile.avatar && (!currentUser.avatar || currentUser.avatar.length <= 2)) currentUser.avatar = cachedProfile.avatar;
+  if (cachedProfile.accent && !currentUser.accent) currentUser.accent = cachedProfile.accent;
   auth.style.display = "none";
   app.style.display = "grid";
   setupMobilePanelSwipe();
@@ -4063,6 +4095,65 @@ function closeProfileModal() {
   const modal = document.getElementById("profileModal");
   if (modal) modal.style.display = "none";
 }
+function openChangeUsernameModal() {
+  if (!currentUser) return;
+  changeUsernameConfirming = false;
+  const input = document.getElementById("changeUsernameInput");
+  const warning = document.getElementById("changeUsernameWarning");
+  if (input) input.value = currentUser.username || "";
+  if (warning) warning.style.display = "none";
+  document.getElementById("changeUsernameModal").style.display = "grid";
+  setTimeout(() => input?.focus(), 0);
+}
+function closeChangeUsernameModal() {
+  const modal = document.getElementById("changeUsernameModal");
+  if (modal) modal.style.display = "none";
+  changeUsernameConfirming = false;
+}
+async function submitChangeUsername() {
+  if (!currentUser) return;
+  const input = document.getElementById("changeUsernameInput");
+  const warning = document.getElementById("changeUsernameWarning");
+  const nextUsername = String(input?.value || "").trim();
+  if (!nextUsername || nextUsername === currentUser.username) return closeChangeUsernameModal();
+  if (!changeUsernameConfirming) {
+    changeUsernameConfirming = true;
+    if (warning) warning.style.display = "block";
+    return;
+  }
+  const oldUsername = currentUser.username;
+  const result = await fetchJSON(`/users/${encodeURIComponent(oldUsername)}/username`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: nextUsername }),
+  }).catch((error) => {
+    pushToast("Username", error.message);
+    return null;
+  });
+  if (!result) return;
+  const oldProfile = readProfileCache(oldUsername);
+  currentUser.username = result.username;
+  currentUser.avatar = result.avatar || currentUser.avatar;
+  currentUser.accent = result.accent || currentUser.accent;
+  if (result.token) {
+    authToken = result.token;
+    try { localStorage.setItem("echohub_token", authToken); } catch {}
+  }
+  saveProfileCache(currentUser.username, { avatar: currentUser.avatar || oldProfile.avatar || "", accent: currentUser.accent || oldProfile.accent || "" });
+  renderSelfName();
+  renderSelfAvatar();
+  announcePresence();
+  allUsers = await fetchJSON("/users").catch(() => allUsers);
+  communities = await fetchJSON(`/communities?username=${encodeURIComponent(currentUser.username)}`).catch(() => communities);
+  friends = await fetchJSON(`/friends/${encodeURIComponent(currentUser.username)}`).catch(() => friends);
+  renderCommunities();
+  renderMembers();
+  renderRandomPeople();
+  saveAuthFields();
+  closeChangeUsernameModal();
+  closeProfileModal();
+  pushToast("Username changed", `You are now ${currentUser.username}.`);
+}
 async function uploadProfileImage() {
   const file = profileImageFile && profileImageFile.files && profileImageFile.files[0];
   if (!file) return;
@@ -4087,6 +4178,7 @@ async function saveProfile(options = {}) {
   const nextAccent = String(profileAccentInput.value || "#5865f2");
   currentUser.avatar = nextAvatar;
   currentUser.accent = nextAccent;
+  saveProfileCache(currentUser.username, { avatar: nextAvatar, accent: nextAccent });
   allUsers = allUsers.map((user) => String(user.username) === String(currentUser.username) ? { ...user, avatar: nextAvatar, accent: nextAccent } : user);
   if (!allUsers.some((user) => String(user.username) === String(currentUser.username))) {
     allUsers.push({ username: currentUser.username, avatar: nextAvatar, accent: nextAccent, title: myTitle || "", role: currentUser.role || "member" });
@@ -4104,6 +4196,7 @@ async function saveProfile(options = {}) {
   if (!updated) return;
   currentUser.avatar = updated.avatar;
   currentUser.accent = updated.accent;
+  saveProfileCache(currentUser.username, { avatar: updated.avatar, accent: updated.accent });
   allUsers = allUsers.map((user) => String(user.username) === String(currentUser.username) ? { ...user, avatar: updated.avatar, accent: updated.accent } : user);
   renderSelfAvatar();
   announcePresence();
@@ -5804,6 +5897,7 @@ document.addEventListener("keydown", (event) => {
   closeProfileModal();
   closeUserProfileModal();
   closeDeleteMessageModal();
+  closeChangeUsernameModal();
   emojiPop.style.display = "none";
   gifPop.style.display = "none";
 });

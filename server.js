@@ -212,6 +212,75 @@ function findUserByUsername(username) {
   if (!target) return null;
   return readUsersList().find((u) => String(u.username || "").trim().toLowerCase() === target) || null;
 }
+function renameKey(map, oldName, newName) {
+  if (!map || typeof map !== "object" || !(oldName in map)) return;
+  map[newName] = map[newName] ?? map[oldName];
+  delete map[oldName];
+}
+function replaceNameInArray(list, oldName, newName) {
+  return Array.isArray(list) ? [...new Set(list.map((item) => String(item) === oldName ? newName : item))] : list;
+}
+function renameUserEverywhere(oldName, newName) {
+  const messages = readDB("messages.json");
+  if (messages && typeof messages === "object") {
+    Object.values(messages).forEach((list) => {
+      if (!Array.isArray(list)) return;
+      list.forEach((message) => {
+        if (String(message.username || "") === oldName) message.username = newName;
+        if (String(message.user || "") === oldName) message.user = newName;
+      });
+    });
+    writeDB("messages.json", messages);
+  }
+
+  const communities = readCommunitiesList().map((community) => ({
+    ...community,
+    owner: community.owner === oldName ? newName : community.owner,
+    personalOwner: community.personalOwner === oldName ? newName : community.personalOwner,
+  }));
+  writeDB("communities.json", communities);
+
+  const memberships = readMembershipMap();
+  Object.values(memberships).forEach((entry) => {
+    entry.members = replaceNameInArray(entry.members, oldName, newName);
+    entry.pending = replaceNameInArray(entry.pending, oldName, newName);
+  });
+  writeMembershipMap(memberships);
+
+  const state = discordService.loadState();
+  ["profiles", "friends", "friendRequests", "blocks", "notifications", "callInvites"].forEach((key) => renameKey(state[key], oldName, newName));
+  Object.keys(state.friends || {}).forEach((key) => { state.friends[key] = replaceNameInArray(state.friends[key], oldName, newName); });
+  Object.values(state.friendRequests || {}).forEach((row) => {
+    if (row) {
+      row.incoming = replaceNameInArray(row.incoming, oldName, newName);
+      row.outgoing = replaceNameInArray(row.outgoing, oldName, newName);
+    }
+  });
+  Object.values(state.communityMemberRoles || {}).forEach((roles) => renameKey(roles, oldName, newName));
+  Object.values(state.bansByCommunity || {}).forEach((bans) => {
+    if (Array.isArray(bans)) bans.forEach((ban) => { if (ban.username === oldName) ban.username = newName; });
+  });
+  Object.values(state.dms || {}).forEach((list) => {
+    if (Array.isArray(list)) list.forEach((message) => {
+      if (message.from === oldName) message.from = newName;
+      if (message.to === oldName) message.to = newName;
+    });
+  });
+  state.auditLog = (state.auditLog || []).map((entry) => ({
+    ...entry,
+    actor: entry.actor === oldName ? newName : entry.actor,
+    target: entry.target === oldName ? newName : entry.target,
+  }));
+  discordService.saveState(state);
+
+  const friendsPath = path.join(DB_PATH, "friends.json");
+  try {
+    const friendDb = JSON.parse(fs.readFileSync(friendsPath, "utf8"));
+    renameKey(friendDb, oldName, newName);
+    Object.keys(friendDb).forEach((key) => { friendDb[key] = replaceNameInArray(friendDb[key], oldName, newName); });
+    fs.writeFileSync(friendsPath, JSON.stringify(friendDb, null, 2));
+  } catch {}
+}
 
 // ============================
 // AUTH ROUTES
@@ -296,6 +365,7 @@ app.get("/users", (req, res) => {
     role: u.role || "member",
     plan: u.plan || "free",
     title: u.title || "",
+    usernameChangedAt: u.usernameChangedAt || "",
   }));
   res.json(users);
 });
@@ -313,6 +383,43 @@ app.post("/users/:username/profile", requireAuth, (req, res) => {
   if (accent) user.accent = accent;
   writeDB("users.json", users);
   res.json({ username: user.username, avatar: user.avatar, accent: user.accent || "#5865f2" });
+});
+
+app.post("/users/:username/username", requireAuth, (req, res) => {
+  const oldName = String(req.params.username || "").trim();
+  const nextName = String(req.body?.username || "").trim();
+  if (!oldName || !nextName) return res.status(400).json({ error: "Username required!" });
+  if (req.authUser !== oldName) return res.status(403).json({ error: "Forbidden!" });
+  if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(nextName)) {
+    return res.status(400).json({ error: "Use 3-24 letters, numbers, dots, dashes, or underscores." });
+  }
+  const users = readUsersList();
+  const user = users.find((u) => u.username === oldName);
+  if (!user) return res.status(404).json({ error: "User not found!" });
+  if (users.some((u) => u.username.toLowerCase() === nextName.toLowerCase() && u.username !== oldName)) {
+    return res.status(400).json({ error: "Username already taken!" });
+  }
+  const lastChanged = user.usernameChangedAt ? new Date(user.usernameChangedAt).getTime() : 0;
+  const cooldownMs = 30 * 24 * 60 * 60 * 1000;
+  if (lastChanged && Date.now() - lastChanged < cooldownMs) {
+    const remainingDays = Math.ceil((cooldownMs - (Date.now() - lastChanged)) / (24 * 60 * 60 * 1000));
+    return res.status(403).json({ error: `You can change your username again in ${remainingDays} day(s).` });
+  }
+  user.username = nextName;
+  user.usernameChangedAt = new Date().toISOString();
+  writeDB("users.json", users);
+  renameUserEverywhere(oldName, nextName);
+  Object.values(onlineUsers).forEach((session) => {
+    if (session.username === oldName) session.username = nextName;
+  });
+  broadcastOnlineUsers();
+  res.json({
+    username: nextName,
+    avatar: user.avatar,
+    accent: user.accent || "#5865f2",
+    usernameChangedAt: user.usernameChangedAt,
+    token: signAuthToken(nextName),
+  });
 });
 
 app.post("/users/:username/role", requireAuth, (req, res) => {
