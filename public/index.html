@@ -2864,21 +2864,31 @@ function scheduleAutoSave(reason = "update") {
   clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => flushAutoSave(reason), 100);
 }
+let profileAutoSaveTimer = null;
+function scheduleProfileAutoSave() {
+  if (!currentUser || !profileAvatarInput || !profileAccentInput) return;
+  clearTimeout(profileAutoSaveTimer);
+  profileAutoSaveTimer = setTimeout(() => saveProfile({ silent: true }), 100);
+}
 function flushAutoSave(reason = "update") {
   if (!currentUser?.username) return;
   const sectionsMap = readLocal("echohub_sections_map", {});
   if (currentCommunityId) sectionsMap[currentCommunityId] = sections;
   const messageCache = readLocal("echohub_messages_cache", {});
-  messages.forEach((message) => {
-    if (!message?.channelId) return;
-    if (!Array.isArray(messageCache[message.channelId])) messageCache[message.channelId] = [];
-    const existingIndex = messageCache[message.channelId].findIndex((item) => String(item.id) === String(message.id));
-    if (existingIndex >= 0) messageCache[message.channelId][existingIndex] = message;
-    else messageCache[message.channelId].push(message);
-    messageCache[message.channelId] = messageCache[message.channelId].slice(-200);
-  });
-  if (currentChannel) {
-    messageCache[currentChannel] = messages.filter((message) => String(message.channelId) === String(currentChannel)).slice(-200);
+  const messageSaveReason = /message|reaction|pin|poll|draft/i.test(reason);
+  if (messageSaveReason) {
+    messages.forEach((message) => {
+      if (!message?.channelId) return;
+      if (!Array.isArray(messageCache[message.channelId])) messageCache[message.channelId] = [];
+      const existingIndex = messageCache[message.channelId].findIndex((item) => String(item.id) === String(message.id));
+      if (existingIndex >= 0) messageCache[message.channelId][existingIndex] = message;
+      else messageCache[message.channelId].push(message);
+      messageCache[message.channelId] = messageCache[message.channelId].slice(-200);
+    });
+    if (currentChannel) {
+      const currentMessages = messages.filter((message) => String(message.channelId) === String(currentChannel)).slice(-200);
+      if (currentMessages.length || reason === "message_deleted") messageCache[currentChannel] = currentMessages;
+    }
   }
   const draftIds = ["messageInput", "newCommunityName", "newChannelName", "newSectionName", "renameChannelName", "editMessageText", "dmInput"];
   const drafts = draftIds.reduce((acc, id) => {
@@ -2891,7 +2901,7 @@ function flushAutoSave(reason = "update") {
   writeLocal("echohub_legacy_channel_community", legacyCommunityMap);
   writeLocal("echohub_channel_types", channelTypeMap);
   writeLocal(`echohub_friends_${currentUser.username}`, friends);
-  writeLocal("echohub_messages_cache", messageCache);
+  if (messageSaveReason) writeLocal("echohub_messages_cache", messageCache);
   writeLocal(`echohub_drafts_${currentUser.username}`, drafts);
   writeLocal("echohub_autosave_snapshot", {
     reason,
@@ -3020,10 +3030,12 @@ function pickSignupColor(value) {
 function pickProfileAvatar(value) {
   profileAvatarInput.value = value;
   renderAvatarPicker(profileAvatarPicker, value, "pickProfileAvatar");
+  scheduleProfileAutoSave();
 }
 function pickProfileColor(value) {
   profileAccentInput.value = value;
   renderColorPicker(profileColorPicker, value, "pickProfileColor");
+  scheduleProfileAutoSave();
 }
 async function signup() {
   try {
@@ -3082,6 +3094,8 @@ username.addEventListener("input", () => {
   saveAuthFields();
 });
 email.addEventListener("input", saveAuthFields);
+profileAvatarInput?.addEventListener("input", scheduleProfileAutoSave);
+profileAccentInput?.addEventListener("change", scheduleProfileAutoSave);
 function focusMobileChatPanel() {
   if (!app || !window.matchMedia("(max-width: 720px)").matches) return;
   requestAnimationFrame(() => {
@@ -4022,11 +4036,21 @@ async function uploadProfileImage() {
   if (!result) return;
   profileAvatarInput.value = result.url;
   if (hint) hint.textContent = "Uploaded";
+  scheduleProfileAutoSave();
 }
-async function saveProfile() {
+async function saveProfile(options = {}) {
   if (!currentUser) return;
+  const silent = Boolean(options && options.silent);
   const nextAvatar = String(profileAvatarInput.value || "").trim() || initials(currentUser.username);
   const nextAccent = String(profileAccentInput.value || "#5865f2");
+  currentUser.avatar = nextAvatar;
+  currentUser.accent = nextAccent;
+  allUsers = allUsers.map((user) => String(user.username) === String(currentUser.username) ? { ...user, avatar: nextAvatar, accent: nextAccent } : user);
+  if (!allUsers.some((user) => String(user.username) === String(currentUser.username))) {
+    allUsers.push({ username: currentUser.username, avatar: nextAvatar, accent: nextAccent, title: myTitle || "", role: currentUser.role || "member" });
+  }
+  renderSelfAvatar();
+  renderSelfName();
   const updated = await fetchJSON(`/users/${encodeURIComponent(currentUser.username)}/profile`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -4038,12 +4062,19 @@ async function saveProfile() {
   if (!updated) return;
   currentUser.avatar = updated.avatar;
   currentUser.accent = updated.accent;
+  allUsers = allUsers.map((user) => String(user.username) === String(currentUser.username) ? { ...user, avatar: updated.avatar, accent: updated.accent } : user);
   renderSelfAvatar();
+  announcePresence();
   allUsers = await fetchJSON("/users").catch(() => allUsers);
   renderMembers();
   renderRandomPeople();
-  closeProfileModal();
-  pushToast("Profile updated", "Your avatar was saved.");
+  scheduleAutoSave("profile_updated");
+  if (!silent) {
+    closeProfileModal();
+    pushToast("Profile updated", "Your avatar was saved.");
+  } else if (profileUploadHint) {
+    profileUploadHint.textContent = "Saved";
+  }
 }
 function submitAddFriend() {
   const name = document.getElementById("addFriendName").value.trim();
