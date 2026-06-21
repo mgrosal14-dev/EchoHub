@@ -97,7 +97,32 @@ const GIPHY_API_KEY = process.env.GIPHY_API_KEY || "6E8OfROXnczP47hpbu3Wb0BQmMrb
 function readDB(file) {
   try {
     const data = fs.readFileSync(path.join(DB_PATH, file), "utf8");
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (file === "messages.json" && Array.isArray(parsed)) {
+      return parsed.reduce((acc, message) => {
+        const channelId = String(message.channelId || message.channel || "general");
+        acc[channelId] = acc[channelId] || [];
+        acc[channelId].push({
+          id: String(message.id || `${Date.now()}-${acc[channelId].length}`),
+          channelId,
+          username: message.username || message.user || "Unknown",
+          text: message.text || "",
+          avatar: message.avatar || (message.username || message.user || "?").slice(0, 2).toUpperCase(),
+          timestamp: message.timestamp || message.createdAt || new Date().toISOString(),
+          replyTo: message.replyTo || null,
+          fileUrl: message.fileUrl || null,
+          fileName: message.fileName || null,
+          isImage: Boolean(message.isImage),
+          poll: message.poll || null,
+          sticker: message.sticker || "",
+          reactions: message.reactions || {},
+          edited: Boolean(message.edited),
+          pinned: Boolean(message.pinned),
+        });
+        return acc;
+      }, {});
+    }
+    return parsed;
   } catch {
     return file === "messages.json" ? {} : [];
   }
