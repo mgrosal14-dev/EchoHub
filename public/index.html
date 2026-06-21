@@ -2377,6 +2377,7 @@ var authMode = "login";
 let localPresence = "online";
 let idleTimer = null;
 let authToken = "";
+try { authToken = localStorage.getItem("echohub_token") || ""; } catch {}
 let myPlan = "free";
 let myTitle = "";
 const avatarPresets = ["AX","NE","SK","RD","QT","VX"];
@@ -2794,10 +2795,18 @@ function avatarMarkup(value, fallbackName) {
   const raw = String(value || "").trim();
   const fallback = initials(fallbackName || "?");
   if (!raw) return escapeHtml(fallback);
-  if (/^https?:\/\//i.test(raw) || raw.startsWith("/uploads/")) {
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("/uploads/") || raw.startsWith("data:image/")) {
     return `<img src="${escapeHtml(raw)}" alt="">`;
   }
   return escapeHtml(raw.length > 2 ? raw.slice(0, 2) : raw);
+}
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Could not read image file."));
+    reader.readAsDataURL(file);
+  });
 }
 function renderSelfAvatar() {
   if (!currentUser || !myAvatarRight) return;
@@ -3030,12 +3039,17 @@ function pickSignupAvatar(value) {
 async function uploadSignupImage() {
   const file = signupImageFile && signupImageFile.files && signupImageFile.files[0];
   if (!file) return;
-  const fd = new FormData();
-  fd.append("file", file);
-  const uploaded = await fetch("/upload", { method: "POST", body: fd }).then((r) => r.json()).catch(() => null);
-  if (!uploaded || !uploaded.url) return showAuthMessage("Signup upload failed.");
-  signupAvatarUploadUrl = uploaded.url;
-  if (signupUploadHint) signupUploadHint.textContent = `Uploaded: ${uploaded.name || "image"}`;
+  if (signupUploadHint) signupUploadHint.textContent = "Saving image...";
+  const dataUrl = await fileToDataUrl(file).catch((error) => {
+    showAuthMessage(error.message);
+    return "";
+  });
+  if (!dataUrl) {
+    if (signupUploadHint) signupUploadHint.textContent = "Upload failed";
+    return;
+  }
+  signupAvatarUploadUrl = dataUrl;
+  if (signupUploadHint) signupUploadHint.textContent = `Saved: ${file.name || "image"}`;
 }
 function pickColorFromUsername(name) {
   const value = String(name || "");
@@ -4052,18 +4066,18 @@ function closeProfileModal() {
 async function uploadProfileImage() {
   const file = profileImageFile && profileImageFile.files && profileImageFile.files[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append("file", file);
   const hint = profileUploadHint;
-  if (hint) hint.textContent = "Uploading...";
-  const result = await fetchJSON("/upload", { method: "POST", body: formData }).catch((e) => {
-    if (hint) hint.textContent = "Upload failed";
+  if (hint) hint.textContent = "Saving image...";
+  const dataUrl = await fileToDataUrl(file).catch((e) => {
     showAuthMessage(e.message);
-    return null;
+    return "";
   });
-  if (!result) return;
-  profileAvatarInput.value = result.url;
-  if (hint) hint.textContent = "Uploaded";
+  if (!dataUrl) {
+    if (hint) hint.textContent = "Upload failed";
+    return;
+  }
+  profileAvatarInput.value = dataUrl;
+  if (hint) hint.textContent = "Saved";
   scheduleProfileAutoSave();
 }
 async function saveProfile(options = {}) {
