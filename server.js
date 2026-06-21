@@ -94,12 +94,49 @@ const DB_PATH = path.join(__dirname, "db");
 const AUTH_SECRET = process.env.ECHOHUB_AUTH_SECRET || "echohub-dev-secret-change-me";
 const GIPHY_API_KEY = process.env.GIPHY_API_KEY || "6E8OfROXnczP47hpbu3Wb0BQmMrbGF42";
 
+function readDeletedMessages() {
+  try {
+    const data = fs.readFileSync(path.join(DB_PATH, "deleted_messages.json"), "utf8");
+    const parsed = JSON.parse(data);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDeletedMessages(data) {
+  fs.writeFileSync(path.join(DB_PATH, "deleted_messages.json"), JSON.stringify(data, null, 2));
+}
+
+function rememberDeletedMessage(channelId, messageId) {
+  const cleanChannelId = String(channelId || "").trim();
+  const cleanMessageId = String(messageId || "").trim();
+  if (!cleanChannelId || !cleanMessageId) return;
+  const deleted = readDeletedMessages();
+  deleted[cleanChannelId] = Array.isArray(deleted[cleanChannelId]) ? deleted[cleanChannelId] : [];
+  if (!deleted[cleanChannelId].some((id) => String(id) === cleanMessageId)) {
+    deleted[cleanChannelId].push(cleanMessageId);
+  }
+  writeDeletedMessages(deleted);
+}
+
+function filterDeletedMessagesByChannel(messagesByChannel) {
+  if (!messagesByChannel || typeof messagesByChannel !== "object" || Array.isArray(messagesByChannel)) return messagesByChannel;
+  const deleted = readDeletedMessages();
+  Object.entries(deleted).forEach(([channelId, ids]) => {
+    if (!Array.isArray(messagesByChannel[channelId]) || !Array.isArray(ids) || !ids.length) return;
+    const deletedIds = new Set(ids.map((id) => String(id)));
+    messagesByChannel[channelId] = messagesByChannel[channelId].filter((message) => !deletedIds.has(String(message.id)));
+  });
+  return messagesByChannel;
+}
+
 function readDB(file) {
   try {
     const data = fs.readFileSync(path.join(DB_PATH, file), "utf8");
     const parsed = JSON.parse(data);
     if (file === "messages.json" && Array.isArray(parsed)) {
-      return parsed.reduce((acc, message) => {
+      return filterDeletedMessagesByChannel(parsed.reduce((acc, message) => {
         const channelId = String(message.channelId || message.channel || "general");
         acc[channelId] = acc[channelId] || [];
         acc[channelId].push({
@@ -120,8 +157,9 @@ function readDB(file) {
           pinned: Boolean(message.pinned),
         });
         return acc;
-      }, {});
+      }, {}));
     }
+    if (file === "messages.json") return filterDeletedMessagesByChannel(parsed);
     return parsed;
   } catch {
     return file === "messages.json" ? {} : [];
@@ -1904,6 +1942,7 @@ app.delete("/messages/:channelId/:messageId", requireAuth, (req, res) => {
   const isStaff = isCommunityStaff(state, community, req.authUser);
   if (!isAuthor && !isStaff) return res.status(403).json({ error: "You can only delete your own messages." });
   messages[channelId] = channelMessages.filter((message) => String(message.id) !== messageId);
+  rememberDeletedMessage(channelId, messageId);
   writeDB("messages.json", messages);
   io.emit("message_deleted", { channelId, messageId });
   res.json({ ok: true, channelId, messageId });
@@ -2048,6 +2087,7 @@ io.on("connection", (socket) => {
     if (!target) return;
     if (actor && String(target.username || "").toLowerCase() !== actor.toLowerCase()) return;
     messages[channelId] = messages[channelId].filter((m) => String(m.id) !== targetId);
+    rememberDeletedMessage(channelId, targetId);
     writeDB("messages.json", messages);
     io.emit("message_deleted", { channelId, messageId: targetId });
   });
