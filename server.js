@@ -2058,11 +2058,12 @@ io.on("connection", (socket) => {
   socket.on("pin_message", ({ channelId, messageId, pinned }) => {
     const messages = readDB("messages.json");
     if (!messages[channelId]) return;
-    const msg = messages[channelId].find((m) => m.id === messageId);
+    const targetId = String(messageId || "");
+    const msg = messages[channelId].find((m) => String(m.id) === targetId);
     if (!msg) return;
     msg.pinned = Boolean(pinned);
     writeDB("messages.json", messages);
-    io.to(channelId).emit("pin_updated", { messageId, pinned: msg.pinned });
+    io.emit("pin_updated", { channelId, messageId: targetId, pinned: msg.pinned });
   });
 
   // Edit a message

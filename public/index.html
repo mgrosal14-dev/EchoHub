@@ -5422,9 +5422,15 @@ function setReply(user) {
 function clearReply() { replyTo = null; replyBox.style.display = "none"; }
 function react(messageId, emoji) { socket.emit("add_reaction", { channelId: currentChannel, messageId, emoji, username: currentUser.username }); }
 function pin(messageId) {
-  const target = messages.find((message) => message.id === messageId);
+  const target = messages.find((message) => String(message.id) === String(messageId));
   if (!target) return;
-  socket.emit("pin_message", { channelId: currentChannel, messageId, pinned: !target.pinned });
+  const nextPinned = !target.pinned;
+  messages = messages.map((message) => String(message.id) === String(messageId) ? { ...message, pinned: nextPinned } : message);
+  renderMessages();
+  renderPins();
+  scheduleAutoSave("pin_updated");
+  socket.emit("pin_message", { channelId: currentChannel, messageId, pinned: nextPinned });
+  pushToast(nextPinned ? "Message pinned" : "Message unpinned", nextPinned ? "Added to pinned messages." : "Removed from pinned messages.");
 }
 function typing() {
   if (!currentUser) return;
@@ -5823,8 +5829,9 @@ socket.on("reaction_updated", ({ messageId, reactions }) => {
   renderMessages();
   scheduleAutoSave("reaction_updated");
 });
-socket.on("pin_updated", ({ messageId, pinned }) => {
-  messages = messages.map((message) => message.id === messageId ? { ...message, pinned } : message);
+socket.on("pin_updated", ({ channelId, messageId, pinned }) => {
+  if (channelId && currentChannel && String(channelId) !== String(currentChannel)) return;
+  messages = messages.map((message) => String(message.id) === String(messageId) ? { ...message, pinned } : message);
   renderMessages();
   scheduleAutoSave("pin_updated");
 });
