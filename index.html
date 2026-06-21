@@ -2933,6 +2933,7 @@ let profileAutoSaveTimer = null;
 function scheduleProfileAutoSave() {
   if (!currentUser || !profileAvatarInput || !profileAccentInput) return;
   clearTimeout(profileAutoSaveTimer);
+  if (profileUploadHint) profileUploadHint.textContent = "Saving in 0.1s...";
   profileAutoSaveTimer = setTimeout(() => saveProfile({ silent: true }), 100);
 }
 function flushAutoSave(reason = "update") {
@@ -5374,6 +5375,8 @@ async function confirmDeleteForEveryone() {
   const messageId = pendingDeleteMessageId;
   if (!currentChannel || !messageId) return;
   const channelId = currentChannel;
+  pushToast("Deleting message", "Deleting for everyone in 0.1s...");
+  await new Promise((resolve) => setTimeout(resolve, 100));
   const deleted = await fetchJSON(`/messages/${encodeURIComponent(channelId)}/${encodeURIComponent(messageId)}`, { method: "DELETE" })
     .catch((error) => {
       pushToast("Delete failed", error.message || "Could not delete this message.");
